@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thesis Defense — Live Console</title>
+<link rel="icon" href="data:,">
+<style>
+  /* ============================================================
+     Examination-stationery system.
+     Ink: blue-black on cool stone paper. Accent: Prussian ink-blue
+     (the examiner's pen). Red is reserved for red flags only.
+     Status colors validated (contrast >= 3:1, CVD-separated) in
+     both schemes; every status also carries a glyph, never color
+     alone. Signature motif: thick-thin letterhead rule, blue-book
+     margin on the question card, certificate ring on the verdict.
+     ============================================================ */
+  :root {
+    color-scheme: light dark;
+    --bg: #edeeea;          /* page plane: cool stone */
+    --panel: #fbfbf8;       /* paper */
+    --ink: #1b1f26;         /* blue-black ink */
+    --muted: #5d6470;
+    --line: #d8d9d1;        /* hairline */
+    --rule: #1b1f26;        /* letterhead thick rule */
+    --accent: #2f4f8f;      /* Prussian ink-blue */
+    --accent-ink: #ffffff;
+    --track: #d3ddef;       /* meter track: light step of the accent ramp */
+    --ok: #1f7a4a;
+    --warn: #96611d;
+    --bad: #a83232;         /* sealing wax — red flags only */
+    --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+    --sans: system-ui, "Segoe UI", sans-serif;
+    font-size: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121417; --panel: #1b1e23; --ink: #e7e5dc; --muted: #99a0ab;
+      --line: #2e323a; --rule: #e7e5dc;
+      --accent: #6593e2; --accent-ink: #0e1420; --track: #2c3a55;
+      --ok: #4fa678; --warn: #bd7e33; --bad: #d96b62;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  [hidden] { display: none !important; }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  body { background: var(--bg); color: var(--ink);
+         font-family: var(--serif); line-height: 1.5;
+         min-height: 100vh; display: flex; flex-direction: column; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Letterhead: engraved small caps over a thick-thin double rule */
+  header { position: relative; display: flex; align-items: baseline; gap: 1rem;
+           flex-wrap: wrap; padding: 1.2rem 1.75rem 1.05rem; }
+  header::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+                  background: linear-gradient(to bottom,
+                    var(--rule) 0 2px, transparent 2px 5px, var(--line) 5px 6px); }
+  header h1 { font-size: .85rem; font-weight: 600; letter-spacing: .22em;
+              text-transform: uppercase; }
+  #timer { margin-left: auto; font-family: var(--sans); font-size: .85rem;
+           font-variant-numeric: tabular-nums; letter-spacing: .03em; color: var(--muted); }
+
+  .chip { font-family: var(--sans); font-size: .7rem; font-weight: 500;
+          letter-spacing: .08em; text-transform: uppercase;
+          padding: .3rem .65rem; border: 1px solid var(--line); border-radius: 2px;
+          color: var(--muted); background: var(--panel); }
+  .chip:empty { display: none; }
+  .chip.tier { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  #qmeta { display: flex; gap: .5rem; flex-wrap: wrap;
+           max-width: 54rem; width: 100%; margin: 0 auto; padding: 1.1rem 1.75rem 0; }
+
+  main { flex: 1; max-width: 54rem; width: 100%; margin: 0 auto; padding: 0 1.75rem 3rem; }
+  #briefing { color: var(--muted); font-style: italic; font-size: 1.05rem;
+              padding: 4rem 0 3rem; text-align: center; }
+
+  /* The question card: an examination paper with a blue-book margin rule */
+  #question-card { background: var(--panel); border: 1px solid var(--line);
+                   border-left: 3px solid var(--accent); border-radius: 3px;
+                   padding: 1.6rem 1.8rem 1.5rem 2.4rem; margin-top: 1.25rem;
+                   background-image: linear-gradient(90deg,
+                     transparent 0 1.55rem,
+                     var(--line) 1.55rem calc(1.55rem + 1px),
+                     transparent calc(1.55rem + 1px));
+                   box-shadow: 0 1px 2px rgba(15, 20, 32, .05); }
+  #question-text { font-size: 1.4rem; line-height: 1.5; text-wrap: pretty; }
+  #grounding { margin-top: .9rem; font-size: .84rem; color: var(--muted); font-style: italic; }
+  #grounding:empty { display: none; }
+
+  #feedback-banner { display: none; margin-top: 1.1rem; border-radius: 3px;
+                     padding: .85rem 1.15rem .9rem 1.35rem;
+                     background: var(--panel); border: 1px solid var(--line);
+                     border-left: 3px solid var(--accent);
+                     font-family: var(--sans); font-size: .88rem; }
+  #feedback-banner.show { display: block; animation: rise .25s ease; }
+  #feedback-banner::before { content: "Examiner’s remark"; display: block;
+                             font-size: .66rem; font-weight: 600; letter-spacing: .16em;
+                             text-transform: uppercase; color: var(--muted);
+                             margin-bottom: .35rem; }
+  @keyframes rise { from { opacity: 0; transform: translateY(3px); } }
+
+  #answer-area { margin-top: 1.1rem; display: flex; flex-direction: column; gap: .6rem; }
+  #answer-input { min-height: 8rem; padding: 1rem 1.1rem; font: inherit; font-size: 1rem;
+                  background: var(--panel); color: var(--ink);
+                  border: 1px solid var(--line); border-radius: 3px; resize: vertical; }
+  #answer-input:focus-visible { border-color: var(--accent); outline-offset: 0; }
+  #send-btn { align-self: flex-end; font-family: var(--sans); font-size: .82rem;
+              font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+              background: var(--accent); color: var(--accent-ink); border: 0;
+              padding: .7rem 1.5rem; border-radius: 3px; cursor: pointer; }
+  #send-btn:hover:not(:disabled) { filter: brightness(1.12); }
+  #send-btn:active:not(:disabled) { transform: translateY(1px); }
+  #send-btn:disabled { opacity: .45; cursor: wait; }
+  #status-line { font-family: var(--sans); font-size: .78rem; color: var(--muted);
+                 min-height: 1.1em; }
+
+  /* The committee's decision: a certificate ring, letterspaced */
+  #verdict-view { display: none; background: var(--panel);
+                  border: 1px solid var(--accent); border-radius: 2px;
+                  outline: 1px solid var(--accent); outline-offset: 3px;
+                  padding: 2.5rem 2rem; margin-top: 2rem; text-align: center; }
+  #verdict-view.show { display: block; }
+  #verdict-view::before { content: "Committee decision"; display: block;
+                          font-family: var(--sans); font-size: .68rem; font-weight: 600;
+                          letter-spacing: .2em; text-transform: uppercase;
+                          color: var(--muted); margin-bottom: 1.1rem; }
+  #verdict-outcome { font-size: 1.7rem; letter-spacing: .1em; text-transform: uppercase;
+                     color: var(--accent); margin-bottom: .7rem; }
+  #verdict-summary { color: var(--ink); max-width: 38rem; margin: 0 auto; }
+
+  /* Instruments: quiet panels, hidden until they carry data */
+  .panels { display: grid; grid-template-columns: 1fr; gap: 0 3rem; margin-top: 1.4rem; }
+  @media (min-width: 44rem) {
+    .panels { grid-template-columns: 1fr 1fr; }
+    .panels section:first-child { grid-column: 1 / -1; }
+  }
+  section:has(> div:empty), section:has(> ul:empty) { display: none; }
+  section h2 { font-family: var(--sans); font-size: .68rem; font-weight: 600;
+               letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+               border-bottom: 1px solid var(--line);
+               padding-bottom: .4rem; margin: 1.6rem 0 .7rem; }
+
+  /* Rubric meters: fill = accent, track = light step of the same ramp,
+     rounded data-end, square at the baseline */
+  #scoreboard .row { display: grid; grid-template-columns: clamp(6rem, 30%, 11rem) 1fr 3.2rem;
+                     align-items: center; gap: .7rem; margin: .45rem 0;
+                     font-family: var(--sans); font-size: .82rem; }
+  #scoreboard .row > span:first-child { color: var(--ink); }
+  #scoreboard .row > span:last-child { color: var(--muted); text-align: right;
+                                       font-variant-numeric: tabular-nums; }
+  .bar { height: .5rem; background: var(--track);
+         border-radius: 0 4px 4px 0; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--accent);
+             border-radius: 0 4px 4px 0; transition: width .4s ease; }
+
+  /* Coverage: a checklist strip — glyph + label, never color alone */
+  #coverage { display: flex; gap: .45rem; flex-wrap: wrap; }
+  .cov { font-family: var(--sans); font-size: .78rem; padding: .3rem .7rem .3rem .6rem;
+         border-radius: 3px; border: 1px solid var(--line);
+         background: var(--panel); color: var(--muted); }
+  .cov::before { content: "○"; margin-right: .45em; }
+  .cov.done { color: var(--ink); border-color: var(--ok); }
+  .cov.done::before { content: "✓"; color: var(--ok); font-weight: 700; }
+  .cov.partial { color: var(--ink); border-color: var(--warn); }
+  .cov.partial::before { content: "◐"; color: var(--warn); }
+  .cov.current { color: var(--ink); font-weight: 600; border-color: transparent;
+                 outline: 2px solid var(--accent); outline-offset: 1px; }
+  .cov.current::before { content: "▸"; color: var(--accent); }
+
+  #red-flags { list-style: none; padding: 0; }
+  #red-flags li { font-family: var(--sans); font-size: .84rem; color: var(--ink);
+                  margin: .35rem 0; padding-left: 1.4em; position: relative; }
+  #red-flags li::before { content: "⚑"; position: absolute; left: 0; color: var(--bad); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚖ Thesis Defense — Live</h1>
+  <span class="chip" id="qcount"></span>
+  <span id="timer">—</span>
+</header>
+<div id="qmeta"></div>
+<main>
+  <p id="briefing">Waiting for the examiner to open the session…</p>
+  <div id="question-card" hidden>
+    <p id="question-text"></p>
+    <p id="grounding"></p>
+  </div>
+  <div id="feedback-banner"></div>
+  <div id="answer-area" hidden>
+    <textarea id="answer-input" placeholder="Answer as you would in the viva room — specifics, numbers, named alternatives."></textarea>
+    <button id="send-btn">Submit answer ➤</button>
+    <span id="status-line"></span>
+  </div>
+  <div id="verdict-view">
+    <div id="verdict-outcome"></div>
+    <p id="verdict-summary"></p>
+  </div>
+  <div class="panels">
+    <section><h2>Scoreboard</h2><div id="scoreboard"></div></section>
+    <section><h2>Coverage</h2><div id="coverage"></div></section>
+    <section><h2>Red flags</h2><ul id="red-flags"></ul></section>
+  </div>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  let current = {}, awaiting = false, timerHandle = null;
+
+  function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  function renderTimer(state) {
+    clearInterval(timerHandle);
+    if (!state.timerStartedAt) { $("timer").textContent = "—"; return; }
+    const tick = () => {
+      const el = Math.max(0, Math.floor(Date.now() / 1000 - state.timerStartedAt));
+      const mm = String(Math.floor(el / 60)).padStart(2, "0"), ss = String(el % 60).padStart(2, "0");
+      let rem = "";
+      if (state.durationMin) {
+        const left = state.durationMin * 60 - el;
+        rem = left >= 0 ? ` · ${Math.ceil(left / 60)} min left` : " · overtime";
+      }
+      $("timer").textContent = `⏱ ${mm}:${ss}${rem}`;
+    };
+    tick(); timerHandle = setInterval(tick, 1000);
+  }
+
+  function render(state) {
+    current = state;
+    $("briefing").hidden = state.phase !== "briefing";
+    const isQ = state.phase === "question" || state.phase === "feedback";
+    $("question-card").hidden = !isQ;
+    $("answer-area").hidden = !isQ;
+    if (isQ) {
+      $("question-text").textContent = state.question || "";
+      $("grounding").textContent = state.grounding ? `Grounding: ${state.grounding}` : "";
+      $("qcount").textContent = state.qid ? `Q${state.qid}` : "";
+      $("qmeta").innerHTML = ["tier", "lens", "category"]
+        .filter(k => state[k])
+        .map(k => `<span class="chip ${k === "tier" ? "tier" : ""}">${esc(state[k])}</span>`).join("");
+      if (awaiting && state.qid !== awaiting.qid) {           // examiner moved on
+        awaiting = false; $("answer-input").value = ""; $("send-btn").disabled = false;
+        $("status-line").textContent = "";
+      }
+    }
+    const fb = state.feedback;
+    $("feedback-banner").className = fb ? "show" : "";
+    if (fb) $("feedback-banner").innerHTML =
+      `<strong>Q${esc(fb.forQid)} — ${esc(fb.verdict || "")}</strong>: ${esc(fb.note || "")}`;
+    $("scoreboard").innerHTML = (state.scoreboard || []).map(r =>
+      `<div class="row"><span>${esc(r.dim)}</span><span class="bar"><i style="width:${100 * (r.score || 0) / (r.max || 3)}%"></i></span><span>${esc(r.score)}/${esc(r.max)}</span></div>`).join("");
+    $("coverage").innerHTML = (state.coverage || []).map(c =>
+      `<span class="cov ${esc(c.status)}">${esc(c.label)}</span>`).join("");
+    $("red-flags").innerHTML = (state.redFlags || []).map(f => `<li>${esc(f)}</li>`).join("");
+    const v = state.phase === "verdict" ? (state.verdict || {}) : null;
+    $("verdict-view").className = v ? "show" : "";
+    if (v) {
+      $("verdict-outcome").textContent = v.outcome || "Verdict";
+      $("verdict-summary").textContent = v.summary || "";
+      $("answer-area").hidden = true; $("question-card").hidden = true;
+      $("qmeta").innerHTML = ""; $("qcount").textContent = "";   // stale question chips
+    }
+    renderTimer(state);
+  }
+
+  async function send() {
+    const answer = $("answer-input").value.trim();
+    if (!answer || awaiting) return;
+    awaiting = { qid: current.qid };
+    $("send-btn").disabled = true;
+    $("status-line").textContent = "Submitted — the examiner is deliberating…";
+    try {
+      const r = await fetch("/answer", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qid: current.qid, answer }) });
+      if (!r.ok) throw new Error();
+    } catch {
+      awaiting = false; $("send-btn").disabled = false;
+      $("status-line").textContent = "Send failed — is the server still running?";
+    }
+  }
+  $("send-btn").addEventListener("click", send);
+  $("answer-input").addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send();
+  });
+
+  const es = new EventSource("/events");
+  es.onmessage = e => { try { render(JSON.parse(e.data)); } catch {} };
+  es.onerror = () => { $("status-line").textContent = "Reconnecting…"; };
+  fetch("/state").then(r => r.json()).then(render).catch(() => {});
+</script>
+</body>
+</html>

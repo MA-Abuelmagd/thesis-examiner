@@ -1,0 +1,11 @@
+{
+  "name": "thesis-examiner",
+  "owner": { "name": "Mohamed Aboelmagd", "url": "https://github.com/MA-Abuelmagd" },
+  "plugins": [
+    {
+      "name": "thesis-examiner",
+      "source": "./",
+      "description": "Universal thesis-defense examiner: question bank, model answers, grading kit, slides cross-examination, live defense console."
+    }
+  ]
+}

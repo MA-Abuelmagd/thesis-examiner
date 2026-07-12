@@ -1,0 +1,9 @@
+{
+  "name": "thesis-examiner",
+  "version": "1.0.0",
+  "description": "Universal thesis-defense examiner: exhaustive viva question bank, model answers, grading kit, optional slides cross-examination, and a live two-way defense console in your browser.",
+  "author": { "name": "Mohamed Aboelmagd", "url": "https://github.com/MA-Abuelmagd" },
+  "license": "MIT",
+  "homepage": "https://github.com/MA-Abuelmagd/thesis-examiner",
+  "repository": "https://github.com/MA-Abuelmagd/thesis-examiner"
+}
