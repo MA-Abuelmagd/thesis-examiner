@@ -1,11 +1,14 @@
 {
   "name": "thesis-examiner",
+  "description": "Home of the Thesis Examiner plugin — turn any thesis (and its defense slides) into an exhaustive viva examination: question bank, model answers, grading kit, and a live browser defense console.",
   "owner": { "name": "Mohamed Aboelmagd", "url": "https://github.com/MA-Abuelmagd" },
   "plugins": [
     {
       "name": "thesis-examiner",
       "source": "./",
-      "description": "Universal thesis-defense examiner: question bank, model answers, grading kit, slides cross-examination, live defense console."
+      "description": "Universal thesis-defense examiner: question bank, model answers, grading kit, slides cross-examination, live defense console.",
+      "category": "education",
+      "keywords": ["thesis", "dissertation", "viva", "defense", "examiner", "academic", "grading", "slides", "research"]
     }
   ]
 }

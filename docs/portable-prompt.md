@@ -1,4 +1,4 @@
-# UNIVERSAL THESIS DEFENSE EXAMINER — PORTABLE META-PROMPT (v2)
+# UNIVERSAL THESIS DEFENSE EXAMINER — PORTABLE META-PROMPT (v1.0.0)
 
 > **HOW TO USE:** Paste everything below into a fresh AI session, attach the thesis PDF
 > (or paste its text) in the same message, and optionally add your defense slides —

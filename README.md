@@ -75,7 +75,7 @@ Everything lives in one protocol file (`skills/thesis-examiner/references/protoc
 
 ## Roadmap
 
-- **v2 — voice I/O:** speak your answers in the live defense instead of typing them.
+- **Voice I/O (planned):** speak your answers in the live defense instead of typing them.
 
 ## License
 
